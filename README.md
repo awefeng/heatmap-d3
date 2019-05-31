@@ -25,10 +25,10 @@ project
 2. 由于浏览器存在跨域问题，读取本地json采用了上传文件的方式，打开网页以后选择json数据文件。
 3. 格子颜色代表当月每天最高温度或者最低温度的平均数，即json中的average，title里的平均温度。
 
-#### challenge1
+#### Challenge1
 
 ![image](https://github.com/awefeng/heatmap-d3/blob/master/img/challenge1.png)
 
-#### challenge2
+#### Challenge2
 
 ![image](https://github.com/awefeng/heatmap-d3/blob/master/img/challenge2.png)

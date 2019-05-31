@@ -6,14 +6,17 @@
 ```
 project
 |	readme.md
-|___d3	// 引用的d3库
-|	|___d3.min.js
+|----d3	// 引用的d3库
+|	|----d3.min.js
 |	index.css
-|	index_challenge1.html	// 第一个demo
-|	index_challenge2.html	// 第二个demo
+|	challenge1.html	// 第一个demo
+|	challenge2.html	// 第二个demo
 |	temperature.json	// json数据文件
 |	temperature.xlsx	// 未转换成json之前的数据文件
 |	xlsxToJson.py	// 转换数据的python脚本
+|----img
+	|----challenge1.png	// 第一个demo图片
+	|----challenge2.png	// 第二个demo图片
 ```
 
 #### Tip

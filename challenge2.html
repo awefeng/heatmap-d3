@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>香港气温统计</title>
+    <link rel="stylesheet" href="./index.css">
+    <script src="http://d3js.org/d3.v3.js"></script>
+</head>
+<body style="height: 100%;">
+    <h2>Challenge 2:</h2>
+    <hr>
+    选择temperature.json数据文件：<input type="file" id="jsonFile"/>
+    <div class="mb20">
+        <label for="temper">气温类型：</label>
+        <select name="temper" id="temper" onchange="changeTemperType()">
+            <option value ="min_temper">最低温度平均值统计</option>
+            <option value ="max_temper">最高温度平均值统计</option>
+        </select>
+    </div>
+    <div id="chart">
+    </div>
+</body>
+<script>
+    var input = document.getElementById("jsonFile")
+    // 数据
+    var temperData = null
+    // 峰值类型 默认max
+    var temperType = 'min_temper'
+    input.addEventListener("change", function () {
+        if (this.files && this.files[0]) {
+            var jsonFile = this.files[0]
+            var reader = new FileReader()
+            reader.addEventListener('load', function (e) {
+                temperData = JSON.parse(e.target.result)
+                visualization('init')
+            })
+            reader.readAsBinaryString(jsonFile)
+        }
+    })
+    // 气温峰值类型变化
+    function changeTemperType(){
+        let tempSelect = document.getElementById('temper')
+        let index = tempSelect.selectedIndex
+        temperType = tempSelect.options[index].value
+        visualization('change')
+    }
+    // 视图化温度函数
+    function visualization(status){
+        if(status === 'change'){
+            let chart = document.getElementById('chart')
+            chart.parentNode.removeChild(chart)
+            let newChart = document.createElement('div')
+            newChart.setAttribute('id', 'chart')
+            document.getElementsByTagName('body')[0].appendChild(newChart)
+        }
+        var margin = { top: 50, right: 0, bottom: 100, left: 30 },
+            width = 960 - margin.left - margin.right,
+            height = 630 - margin.top - margin.bottom,
+            gridSize = Math.floor(width / 12),
+            legendElementWidth = gridSize,
+            buckets = 9,
+            colors = ["#ffffd9","#edf8b1","#c7e9b4","#7fcdbb","#41b6c4","#1d91c0","#225ea8","#253494","#081d58"],
+            months = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12"],
+            years = [...new Set(temperData.map(item => item.year))]
+
+        var svg = d3.select("#chart").append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+        // 月坐标
+        var monthLabels = svg.selectAll(".monthLabel")
+            .data(months)
+            .enter().append("text")
+            .text(year => year)
+            .attr("x", 0)
+            .attr("y", function (d, i) { return i * gridSize / 2})
+            .style("text-anchor", "end")
+            .attr("transform", "translate(-6," + gridSize / 3 + ")")
+            .attr("class", "monthLabel mono axis axis-workweek")
+        // 年坐标
+        var yearLabels = svg.selectAll(".yearLabel")
+            .data(years)
+            .enter().append("text")
+            .text(function(d) { return d; })
+            .attr("x", function(d, i) { return i * gridSize; })
+            .attr("y", 0)
+            .style("text-anchor", "middle")
+            .attr("transform", "translate(" + gridSize / 2 + ", -6)")
+            .attr("class", "yearLabel mono axis axis-worktime");
+        // 根据选择类型来绘制图
+        var heatmapChart = function(type) {
+            var colorScale = d3.scale.quantile()
+                .domain([0, buckets - 1, d3.max(temperData, function (item) {
+                    return item[type].average + 10
+                })])
+                .range(colors)
+            var cards = svg.selectAll(".tempter")
+                .data(temperData)
+            
+            cards.enter().append("rect")
+                .attr("x", function(item) { return (parseInt(item.year) - 1997) * gridSize })
+                .attr("y", function(item) { return (parseInt(item.month) - 1) * gridSize / 2 })
+                .attr("class", "tempter bordered")
+                .attr("width", gridSize)
+                .attr("height", gridSize / 2)
+                .style("fill", colors[0])
+                .append('title').text(function(item){
+                    return `${item.year}/${item.month}: 最高温:${item[type].max}, 最低温:${item[type].min}, 平均:${item[type].average}`
+                })
+
+            cards.transition().duration(1000)
+                .style("fill", function(item) { return colorScale(item[type]['average'] - 10)})
+
+            cards.exit().remove()
+
+            var svgline = d3.select('#chart').select("svg").append('g')
+                .attr("transform", "translate(" + margin.left + "," + margin.top + ")")
+            
+            var lines = svgline.selectAll('.line').data(temperData)
+            
+            lines.enter().append('path')
+                .attr("x", function(item) { return (parseInt(item.year) - 1997) * gridSize })
+                .attr("y", function(item) { return (parseInt(item.month) - 1) * gridSize / 2 })
+                .attr("width", gridSize)
+                .attr("height", gridSize / 2)
+                .attr('class', 'line')
+                .attr('d', function(atemp){
+                    let lineData = atemp[temperType].value.map((item, index)=>{
+                        return {x: index, y: item}
+                    })
+                    let xScale = d3.scale.linear()
+                        .domain(d3.extent(lineData, item => item.x))
+                        .range([(parseInt(atemp.year) - 1997) * gridSize, (parseInt(atemp.year) - 1996) * gridSize])
+                    let yScale = d3.scale.linear()
+                        .domain([0, 40])
+                        .range([parseInt(atemp.month) * gridSize / 2, (parseInt(atemp.month) - 1) * gridSize / 2])
+                    let line = d3.svg.line().x(tempter => xScale(tempter.x)).y(tempter => yScale(tempter.y)).interpolate('linear')
+                    return line(lineData)
+                })
+            
+            lines.exit().remove()
+
+            var legend = svg.selectAll(".legend")
+                .data(()=>{
+                    return [0].concat(colorScale.quantiles()).map(x => x + 10)
+                })
+
+            legend.enter().append("g")
+                .attr("class", "legend");
+
+            legend.append("rect")
+                .attr("x", function(item, i) { return legendElementWidth * i; })
+                .attr("y", height)
+                .attr("width", legendElementWidth)
+                .attr("height", gridSize / 4)
+                .style("fill", function(item, i) { return colors[i]; });
+
+            legend.append("text")
+                .attr("class", "mono")
+                .text(function(item) { 
+                    return "≤ " + Math.round(item)
+                })
+                .attr("x", function(item, i) { return legendElementWidth * i })
+                .attr("y", height + gridSize/2)   
+
+            legend.exit().remove();
+        }
+        heatmapChart(temperType)
+    }
+
+</script>
+</html>
